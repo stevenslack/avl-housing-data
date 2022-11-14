@@ -1,7 +1,28 @@
 import './style.css';
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
+import wagesData from './data/bls-wages';
 
-const weeklyWages = Object.entries(Array.from(housingData)[0]);
+// TODO: fetch data and use stored data if endpoint limit is reached.
+// fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/ENU3702140010/?startyear=2013&endyear=2023&calculations=true&annualaverage=true&aspects=true')
+//   .then((data) => data.json())
+//   .then((result) => result?.Results)
+//   .then((series) => console.log(series['series'][0]['data']));
+
+const monthlyHomePrices = Object.entries(Array.from(housingData)[0]);
+
+// Shape for period/quarters key values.
+enum Quarters {
+  Q1 = 'Q1',
+  Q2 = 'Q2',
+  Q3 = 'Q3',
+  Q4 = 'Q4',
+  Q5 = 'Q5',
+  Q01 = 'Q01',
+  Q02 = 'Q02',
+  Q03 = 'Q03',
+  Q04 = 'Q04',
+  Q05 = 'Q05',
+};
 
 /**
  * Interface for each year / quarterly data points.
@@ -11,6 +32,32 @@ interface yearData {
     [quarter: string]: number[];
   };
 };
+
+/**
+ * Interface for the BLS wage data point.
+ */
+interface BLSWageDataPoint {
+  year: string | number;
+  period: Quarters | string,
+  periodName: string,
+  value: string | number,
+  aspects: [],
+  footnotes: [{}],
+};
+
+/**
+ * Price/Earnings data point.
+ */
+interface PEdataPoint {
+  year: string,
+  period: string,
+  avgHomeValue: number,
+  annualWage: number,
+  PEratio: number,
+}
+
+// Store for the PEdataPoint series.
+let priceToEarningsSeries: PEdataPoint[] = [];
 
 /**
  * Get the yearly quarter key.
@@ -34,7 +81,14 @@ function getQuarter(month: number): string {
   return '';
 }
 
-const final = weeklyWages.reduce((acc: yearData, curr: [string, number], index): yearData => {
+/**
+ * The home value data series.
+ * 
+ * The data stored in this variable has been manipulated to represent
+ * each year divided into quarters which have their monthly home values
+ * in an array.
+ */
+const homeValueSeries = monthlyHomePrices.reduce((acc: yearData, curr: [string, number]) => {
   const date = new Date(curr[0]);
 
   const year: string = JSON.stringify(date.getFullYear());
@@ -54,10 +108,40 @@ const final = weeklyWages.reduce((acc: yearData, curr: [string, number], index):
   return { ...acc, [year]: { ...acc[year], [quarter]: quarterlyHomeValues } };
 }, {});
 
-console.log(final);
+// Assign the period data to match the housing data set (Q01 to equal Q1).
+let seriesData: BLSWageDataPoint[] = wagesData
+  .map((x: BLSWageDataPoint) => {
+    x.period = x.period.replace('0', '');
+    return x;
+  });
 
-// const api = fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/ENU3702140010/?startyear=2013&endyear=2023&calculations=true&annualaverage=true&aspects=true').then((data) => {
-//   return data.json();
-// });
+for (const year in homeValueSeries) {
+  let yearValue = homeValueSeries[year];
 
-// console.log(api);
+  for (const period in yearValue) {
+    const sum: number = yearValue[period].reduce((acc, curr) => acc + curr, 0);
+
+    let annualWage: string|number = 0;
+    seriesData.forEach(x => {
+      if ((x.year === year) && (x.period === period)) {
+        annualWage = Math.round(Number(x.value) * 52.1429);
+      }
+    });
+
+    const avgHomeValue: number = Math.round(sum / yearValue[period]?.length);
+    const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
+
+    // Only add a data point if there is a corresponding wage data value.
+    if (annualWage) {
+      priceToEarningsSeries.push({
+        year,
+        period,
+        avgHomeValue,
+        annualWage,
+        PEratio,
+      });
+    }
+  }
+}
+
+console.log(priceToEarningsSeries);
