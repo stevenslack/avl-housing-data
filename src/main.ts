@@ -119,16 +119,21 @@ for (const year in homeValueSeries) {
   let yearValue = homeValueSeries[year];
 
   for (const period in yearValue) {
+    // For each period there is 3 months of median home prices.
+    // Below those 3 months are averaged into one value representing the period/quarter.
     const sum: number = yearValue[period].reduce((acc, curr) => acc + curr, 0);
+    const avgHomeValue: number = Math.round(sum / yearValue[period]?.length);
 
     let annualWage: string|number = 0;
     seriesData.forEach(x => {
+      // Ensure there is a match for each year and period/quarter before calculating the annual wage.
       if ((x.year === year) && (x.period === period)) {
+        // Multiply the weekly wage by the number of weeks in a year.
         annualWage = Math.round(Number(x.value) * 52.1429);
       }
     });
 
-    const avgHomeValue: number = Math.round(sum / yearValue[period]?.length);
+    // Calculate the Price to Earnings ratio.
     const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
 
     // Only add a data point if there is a corresponding wage data value.
@@ -145,3 +150,24 @@ for (const year in homeValueSeries) {
 }
 
 console.log(priceToEarningsSeries);
+
+/** 
+ * Create plot line with data points for an SVG with the following:
+ * 
+ * Example: width 200 and height 160;
+ * 
+ * width = total number of data points
+ * height = range from lowest to highest point + some padding.
+ *
+ * Example data point:
+ * 
+ * Starting at the bottom left of the graph:
+ * "0 160" would indicate the following:
+ * 0 = all the way to the left of the viewbox
+ * 160 = all the way from the top (start at bottom left)
+ *
+ *  <svg width="190" height="160" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 0 160 C 40 10, 65 10, 95 80 S 150 150, 190 0" stroke="black" fill="transparent"/>
+    </svg>
+ *
+ */
