@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "lint": "eslint --ext .js,.ts .",
+    "lint:fix": "eslint --ext .js --ext .ts --ext",
+    "preview": "vite preview",
+    "stylelint": "stylelint \"**/*.scss\" --allow-empty-input"
   },
   "devDependencies": {
+    "eslint": "^8.27.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "stylelint": "^14.15.0",
     "typescript": "^4.6.4",
     "vite": "^3.1.0"
   },

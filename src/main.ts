@@ -151,7 +151,8 @@ for (const year in homeValueSeries) {
 
 console.log(priceToEarningsSeries);
 
-/** 
+/**
+ * https://css-tricks.com/svg-path-syntax-illustrated-guide/
  * Create plot line with data points for an SVG with the following:
  * 
  * Example: width 200 and height 160;
