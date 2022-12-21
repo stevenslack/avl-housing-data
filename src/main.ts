@@ -52,12 +52,44 @@ interface PEdataPoint {
   year: string,
   period: string,
   avgHomeValue: number,
+  dateRange: Date[] | [],
   annualWage: number,
   PEratio: number,
 }
 
 // Store for the PEdataPoint series.
 const dataSeries: PEdataPoint[] = [];
+
+type QuarterName = 'Q1' | 'Q2' | 'Q3' | 'Q4';
+
+type QuarterMonths = {
+  [key in QuarterName]: [number, number, number];
+};
+
+const quarterMonths: QuarterMonths = {
+  Q1: [1, 2, 3],
+  Q2: [4, 5, 6],
+  Q3: [7, 8, 9],
+  Q4: [10, 11, 12],
+};
+
+/**
+ * Get the date range for a quarter period in a year.
+ *
+ * @param year - The year in which the quarter resides.
+ * @param quarter - The quarter to get the month range for.
+ * @returns an array of 2 dates from beginning to end of a quarter.
+ */
+function getDateRangePerQuarter(year: number, quarter: QuarterName): Date[] {
+  let dateRange: Date[] = [];
+  // Set the date range as an array of beginning and end months for each quarter.
+  dateRange = [
+    new Date(year, quarterMonths[quarter][0] - 1, 1),
+    new Date(year, quarterMonths[quarter][2], 0),
+  ];
+
+  return dateRange;
+}
 
 /**
  * Get the yearly quarter key.
@@ -66,14 +98,7 @@ const dataSeries: PEdataPoint[] = [];
  * @returns The quarter key. Possible values are Q1, Q2, Q3, Q4 or an empty string.
  */
 function getQuarter(month: number): string {
-  const quarters = {
-    Q1: [1, 2, 3],
-    Q2: [4, 5, 6],
-    Q3: [7, 8, 9],
-    Q4: [10, 11, 12],
-  };
-
-  for (const [key, value] of Object.entries(quarters)) {
+  for (const [key, value] of Object.entries(quarterMonths)) {
     if (value.indexOf(month) !== -1) {
       return key;
     }
@@ -129,12 +154,15 @@ for (const year in homeValueSeries) {
         const avgHomeValue: number = Math.round(sum / yearValue[period].length);
 
         let annualWage: string | number = 0;
+        let dateRange: Date[] = [];
+
         seriesData.forEach((x) => {
           // Ensure there is a match for each year and period/quarter
           // before calculating the annual wage.
           if ((x.year === year) && (x.period === period)) {
             // Multiply the weekly wage by the number of weeks in a year.
             annualWage = Math.round(Number(x.value) * 52.1429);
+            dateRange = getDateRangePerQuarter(Number(year), period as QuarterName);
           }
         });
 
@@ -146,6 +174,7 @@ for (const year in homeValueSeries) {
           dataSeries.push({
             year,
             period,
+            dateRange,
             avgHomeValue,
             annualWage,
             PEratio,
@@ -159,7 +188,6 @@ for (const year in homeValueSeries) {
 function getPlotLineString() {
   const plotLine: Array<[number, number]> = [];
   dataSeries.forEach((dataPoint, index) => {
-    console.log(dataPoint);
     const ratio = dataPoint.PEratio;
     const year = Number(dataPoint.year);
     // const delimiter = dataSeries.length !== index + 1 ? ', ' : '';
