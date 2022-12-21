@@ -22,16 +22,16 @@ enum Quarters {
   Q03 = 'Q03',
   Q04 = 'Q04',
   Q05 = 'Q05',
-};
+}
 
 /**
  * Interface for each year / quarterly data points.
  */
-interface yearData {
+interface YearData {
   [year: string]: {
     [quarter: string]: number[];
   };
-};
+}
 
 /**
  * Interface for the BLS wage data point.
@@ -43,7 +43,7 @@ interface BLSWageDataPoint {
   value: string | number,
   aspects: [],
   footnotes: [{}],
-};
+}
 
 /**
  * Price/Earnings data point.
@@ -57,7 +57,7 @@ interface PEdataPoint {
 }
 
 // Store for the PEdataPoint series.
-let priceToEarningsSeries: PEdataPoint[] = [];
+const dataSeries: PEdataPoint[] = [];
 
 /**
  * Get the yearly quarter key.
@@ -67,14 +67,14 @@ let priceToEarningsSeries: PEdataPoint[] = [];
  */
 function getQuarter(month: number): string {
   const quarters = {
-    'Q1': [1, 2, 3],
-    'Q2': [4, 5, 6],
-    'Q3': [7, 8, 9],
-    'Q4': [10, 11, 12],
+    Q1: [1, 2, 3],
+    Q2: [4, 5, 6],
+    Q3: [7, 8, 9],
+    Q4: [10, 11, 12],
   };
 
   for (const [key, value] of Object.entries(quarters)) {
-    if (-1 !== value.indexOf(month)) {
+    if (value.indexOf(month) !== -1) {
       return key;
     }
   }
@@ -83,16 +83,17 @@ function getQuarter(month: number): string {
 
 /**
  * The home value data series.
- * 
+ *
  * The data stored in this variable has been manipulated to represent
  * each year divided into quarters which have their monthly home values
  * in an array.
  */
-const homeValueSeries = monthlyHomePrices.reduce((acc: yearData, curr: [string, number]) => {
+const homeValueSeries = monthlyHomePrices.reduce((acc: YearData, curr: [string, number]) => {
   const date = new Date(curr[0]);
 
   const year: string = JSON.stringify(date.getFullYear());
-  // Set the quarter ID by passing the month. Add 1 to ensure months are not on a zero-based numbering sequence.
+  // Set the quarter ID by passing the month.
+  // Add 1 to ensure months are not on a zero-based numbering sequence.
   const quarter: string = getQuarter(date.getMonth() + 1);
 
   const [, currHomeValue] = curr;
@@ -109,59 +110,75 @@ const homeValueSeries = monthlyHomePrices.reduce((acc: yearData, curr: [string, 
 }, {});
 
 // Assign the period data to match the housing data set (Q01 to equal Q1).
-let seriesData: BLSWageDataPoint[] = wagesData
+const seriesData: BLSWageDataPoint[] = wagesData
   .map((x: BLSWageDataPoint) => {
-    x.period = x.period.replace('0', '');
-    return x;
+    const dataPoint = x;
+    dataPoint.period = x.period.replace('0', '');
+    return dataPoint;
   });
 
 for (const year in homeValueSeries) {
-  let yearValue = homeValueSeries[year];
+  if (Object.prototype.hasOwnProperty.call(homeValueSeries, year)) {
+    const yearValue = homeValueSeries[year];
 
-  for (const period in yearValue) {
-    // For each period there is 3 months of median home prices.
-    // Below those 3 months are averaged into one value representing the period/quarter.
-    const sum: number = yearValue[period].reduce((acc, curr) => acc + curr, 0);
-    const avgHomeValue: number = Math.round(sum / yearValue[period]?.length);
+    for (const period in yearValue) {
+      if (Object.prototype.hasOwnProperty.call(yearValue, period)) {
+        // For each period there is 3 months of median home prices.
+        // Below those 3 months are averaged into one value representing the period/quarter.
+        const sum: number = yearValue[period].reduce((acc, curr) => acc + curr, 0);
+        const avgHomeValue: number = Math.round(sum / yearValue[period].length);
 
-    let annualWage: string|number = 0;
-    seriesData.forEach(x => {
-      // Ensure there is a match for each year and period/quarter before calculating the annual wage.
-      if ((x.year === year) && (x.period === period)) {
-        // Multiply the weekly wage by the number of weeks in a year.
-        annualWage = Math.round(Number(x.value) * 52.1429);
+        let annualWage: string | number = 0;
+        seriesData.forEach((x) => {
+          // Ensure there is a match for each year and period/quarter
+          // before calculating the annual wage.
+          if ((x.year === year) && (x.period === period)) {
+            // Multiply the weekly wage by the number of weeks in a year.
+            annualWage = Math.round(Number(x.value) * 52.1429);
+          }
+        });
+
+        // Calculate the Price to Earnings ratio.
+        const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
+
+        // Only add a data point if there is a corresponding wage data value.
+        if (annualWage) {
+          dataSeries.push({
+            year,
+            period,
+            avgHomeValue,
+            annualWage,
+            PEratio,
+          });
+        }
       }
-    });
-
-    // Calculate the Price to Earnings ratio.
-    const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
-
-    // Only add a data point if there is a corresponding wage data value.
-    if (annualWage) {
-      priceToEarningsSeries.push({
-        year,
-        period,
-        avgHomeValue,
-        annualWage,
-        PEratio,
-      });
     }
   }
 }
 
-console.log(priceToEarningsSeries);
+function getPlotLineString() {
+  const plotLine: Array<[number, number]> = [];
+  dataSeries.forEach((dataPoint, index) => {
+    console.log(dataPoint);
+    const ratio = dataPoint.PEratio;
+    const year = Number(dataPoint.year);
+    // const delimiter = dataSeries.length !== index + 1 ? ', ' : '';
+    plotLine.push([index, ratio]);
+  });
+  return plotLine;
+}
 
 /**
  * https://css-tricks.com/svg-path-syntax-illustrated-guide/
  * Create plot line with data points for an SVG with the following:
- * 
+ *
  * Example: width 200 and height 160;
- * 
+ *
  * width = total number of data points
  * height = range from lowest to highest point + some padding.
  *
  * Example data point:
- * 
+ *
  * Starting at the bottom left of the graph:
  * "0 160" would indicate the following:
  * 0 = all the way to the left of the viewbox
