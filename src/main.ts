@@ -136,11 +136,10 @@ const homeValueSeries = monthlyHomePrices.reduce((acc: YearData, curr: [string, 
 
 // Assign the period data to match the housing data set (Q01 to equal Q1).
 const seriesData: BLSWageDataPoint[] = wagesData
-  .map((x: BLSWageDataPoint) => {
-    const dataPoint = x;
-    dataPoint.period = x.period.replace('0', '');
-    return dataPoint;
-  });
+  .map((x: BLSWageDataPoint) => ({
+    ...x,
+    period: x.period.replace('0', ''),
+  }));
 
 for (const year in homeValueSeries) {
   if (Object.prototype.hasOwnProperty.call(homeValueSeries, year)) {
