@@ -1,4 +1,6 @@
 import './style.css';
+import * as d3 from 'd3';
+
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from './data/bls-wages';
 
@@ -184,16 +186,50 @@ for (const year in homeValueSeries) {
   }
 }
 
-function getPlotLineString() {
-  const plotLine: Array<[number, number]> = [];
-  dataSeries.forEach((dataPoint, index) => {
-    const ratio = dataPoint.PEratio;
-    const year = Number(dataPoint.year);
-    // const delimiter = dataSeries.length !== index + 1 ? ', ' : '';
-    plotLine.push([index, ratio]);
-  });
-  return plotLine;
-}
+const width = 1000;
+const height = 600;
+
+const svg = d3.select('#pe-graph').append('svg')
+  .attr('width', width)
+  .attr('height', height);
+
+// const svg = document.querySelector('.pe-graph__svg');
+// const width = svg?.getAttribute('width') || 0;
+// const height = svg?.getAttribute('height') || 0;
+
+const xScale = d3.scaleTime()
+  .domain(
+    d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange[1]),
+  )
+  .range([0, width]);
+
+const yScale = d3.scaleLinear()
+  // The domain gives us the y-axis range starting at 4.
+  .domain([4, d3.max(dataSeries, (d: PEdataPoint) => d.PEratio) + 1])
+  .range([height, 10]);
+
+const lineGenerator = d3.line()
+  .x((d: any) => xScale(d.dateRange[1]))
+  .y((d: any) => yScale(d.PEratio))
+  .curve(d3.curveMonotoneX);
+
+const path = svg?.append('path')
+  .datum(dataSeries)
+  .attr('d', lineGenerator)
+  .attr('stroke', 'steelblue')
+  .attr('fill', 'none');
+
+const xAxis = d3.axisBottom(xScale);
+
+const yAxis = d3.axisLeft(yScale);
+
+svg.append('g')
+  // The transform puts the x axis at the bottom of the graph.
+  .attr('transform', `translate(0, ${height})`)
+  .call(xAxis);
+
+svg.append('g')
+  .call(yAxis);
 
 /**
  * https://css-tricks.com/svg-path-syntax-illustrated-guide/
