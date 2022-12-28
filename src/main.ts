@@ -54,7 +54,7 @@ interface PEdataPoint {
   year: string,
   period: string,
   avgHomeValue: number,
-  dateRange: Date[] | [],
+  dateRange: Date[],
   annualWage: number,
   PEratio: number,
 }
@@ -83,7 +83,7 @@ const quarterMonths: QuarterMonths = {
  * @returns an array of 2 dates from beginning to end of a quarter.
  */
 function getDateRangePerQuarter(year: number, quarter: QuarterName): Date[] {
-  let dateRange: Date[] = [];
+  let dateRange: Date[] = [new Date(), new Date()];
   // Set the date range as an array of beginning and end months for each quarter.
   dateRange = [
     new Date(year, quarterMonths[quarter][0] - 1, 1),
@@ -155,7 +155,7 @@ for (const year in homeValueSeries) {
         const avgHomeValue: number = Math.round(sum / yearValue[period].length);
 
         let annualWage: string | number = 0;
-        let dateRange: Date[] = [];
+        let dateRange: Date[] = [new Date(), new Date()];
 
         seriesData.forEach((x) => {
           // Ensure there is a match for each year and period/quarter
@@ -199,13 +199,13 @@ const svg = d3.select('#pe-graph').append('svg')
 
 const xScale = d3.scaleTime()
   .domain(
-    d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange[1]),
+    d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange[1]) as Date[],
   )
   .range([0, width]);
 
 const yScale = d3.scaleLinear()
   // The domain gives us the y-axis range starting at 4.
-  .domain([4, d3.max(dataSeries, (d: PEdataPoint) => d.PEratio) + 1])
+  .domain([4, d3.max(dataSeries, (d: PEdataPoint) => d.PEratio) as number + 1])
   .range([height, 10]);
 
 const lineGenerator = d3.line()
