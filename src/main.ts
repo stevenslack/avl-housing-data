@@ -1,6 +1,7 @@
 import './style.css';
 import * as d3 from 'd3';
 
+import { Line } from 'd3';
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from './data/bls-wages';
 
@@ -36,7 +37,7 @@ interface YearData {
 }
 
 /**
- * Interface for the BLS wage data point.
+ * The BLS wage data point definition.
  */
 interface BLSWageDataPoint {
   year: string | number;
@@ -48,7 +49,7 @@ interface BLSWageDataPoint {
 }
 
 /**
- * Price/Earnings data point.
+ * Price/Earnings data point definition.
  */
 interface PEdataPoint {
   year: string,
@@ -186,6 +187,10 @@ for (const year in homeValueSeries) {
   }
 }
 
+// const svg = document.querySelector('.pe-graph__svg');
+// const width = svg?.getAttribute('width') || 0;
+// const height = svg?.getAttribute('height') || 0;
+
 const width = 1000;
 const height = 600;
 
@@ -193,13 +198,9 @@ const svg = d3.select('#pe-graph').append('svg')
   .attr('width', width)
   .attr('height', height);
 
-// const svg = document.querySelector('.pe-graph__svg');
-// const width = svg?.getAttribute('width') || 0;
-// const height = svg?.getAttribute('height') || 0;
-
 const xScale = d3.scaleTime()
   .domain(
-    d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange[1]) as Date[],
+    d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange?.[1]) as Date[],
   )
   .range([0, width]);
 
@@ -209,13 +210,13 @@ const yScale = d3.scaleLinear()
   .range([height, 10]);
 
 const lineGenerator = d3.line()
-  .x((d: any) => xScale(d.dateRange[1]))
-  .y((d: any) => yScale(d.PEratio))
+  .x((d: any) => xScale(d?.dateRange?.[1]))
+  .y((d: any) => yScale(d?.PEratio))
   .curve(d3.curveMonotoneX);
 
-const path = svg?.append('path')
+const path = svg.append('path')
   .datum(dataSeries)
-  .attr('d', lineGenerator)
+  .attr('d', lineGenerator as any)
   .attr('stroke', 'steelblue')
   .attr('fill', 'none');
 
@@ -252,3 +253,12 @@ svg.append('g')
     </svg>
  *
  */
+
+const apple = {
+  name: 'Apple',
+  color: 'red',
+  sweetness: 80,
+  hasSeeds: true,
+};
+
+type AppleKeys = keyof typeof apple;
