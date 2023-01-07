@@ -214,7 +214,13 @@ const lineGenerator = d3.line()
   .y((d: any) => yScale(d?.PEratio))
   .curve(d3.curveMonotoneX);
 
-const path = svg.append('path')
+const tooltip = svg.append('text')
+  .attr('x', 10)
+  .attr('y', 10)
+  .style('opacity', 0)
+  .text('');
+
+svg.append('path')
   .datum(dataSeries)
   .attr('d', lineGenerator as any)
   .attr('stroke', 'steelblue')
@@ -230,7 +236,27 @@ svg.append('g')
   .call(xAxis);
 
 svg.append('g')
-  .call(yAxis);
+  .call(yAxis)
+  .append('text')
+  .attr('class', 'y-axis-label')
+  .html('Internet Usage (GB)');
+
+svg.on('mouseover', (event) => {
+  const x = xScale.invert(event.offsetX);
+  const y = yScale.invert(event.offsetY);
+  // Show the tooltip and update its content.
+  tooltip.style('opacity', 1)
+    .text(`Date: ${x.toLocaleDateString()} P/E Ratio: ${y.toFixed(1)}`);
+})
+  .on('mousemove', (event) => {
+  // Update the position of the tooltip
+    tooltip.attr('x', event.offsetX + 10)
+      .attr('y', event.offsetY + 10);
+  })
+  .on('mouseout', () => {
+  // Hide the tooltip
+    tooltip.style('opacity', 0);
+  });
 
 /**
  * https://css-tricks.com/svg-path-syntax-illustrated-guide/
