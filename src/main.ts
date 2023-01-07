@@ -187,16 +187,13 @@ for (const year in homeValueSeries) {
   }
 }
 
-// const svg = document.querySelector('.pe-graph__svg');
-// const width = svg?.getAttribute('width') || 0;
-// const height = svg?.getAttribute('height') || 0;
-
 const width = 1000;
 const height = 600;
 
 const svg = d3.select('#pe-graph').append('svg')
   .attr('width', width)
-  .attr('height', height);
+  .attr('height', height)
+  .lower(); // prepends the svg to the #pe-graph element.
 
 const xScale = d3.scaleTime()
   .domain(
@@ -224,28 +221,50 @@ svg.append('path')
   .datum(dataSeries)
   .attr('d', lineGenerator as any)
   .attr('stroke', 'steelblue')
-  .attr('fill', 'none');
+  .attr('fill', 'none')
+  .on('mouseover', (event) => {
+    const x = xScale.invert(event.offsetX);
+    const y = yScale.invert(event.offsetY);
+    // Show the tooltip and update its content.
+    tooltip
+      .text(`Date: ${x.toLocaleDateString()} P/E Ratio: ${y.toFixed(1)}`);
+  })
+  .on('mousemove', (event) => {
+    // Update the position of the tooltip
+    tooltip.attr('x', event.offsetX + 10)
+      .attr('y', event.offsetY + 10);
+  })
+  .on('mouseout', () => {
+    // Hide the tooltip
+    tooltip.style('opacity', 0);
+  });
 
 const xAxis = d3.axisBottom(xScale);
-
-const yAxis = d3.axisLeft(yScale);
 
 svg.append('g')
   // The transform puts the x axis at the bottom of the graph.
   .attr('transform', `translate(0, ${height})`)
   .call(xAxis);
 
+const yAxis = d3.axisLeft(yScale);
+
+// Create the y-axis-label.
 svg.append('g')
   .call(yAxis)
   .append('text')
   .attr('class', 'y-axis-label')
-  .html('Internet Usage (GB)');
+  .attr('fill', 'currentColor')
+  .attr('x', `-${height / 2}`)
+  .attr('y', -50)
+  .text('P/E Ratio')
+  .style('transform', 'rotate(-90deg)')
+  .style('font-size', '16px');
 
 svg.on('mouseover', (event) => {
   const x = xScale.invert(event.offsetX);
   const y = yScale.invert(event.offsetY);
   // Show the tooltip and update its content.
-  tooltip.style('opacity', 1)
+  tooltip
     .text(`Date: ${x.toLocaleDateString()} P/E Ratio: ${y.toFixed(1)}`);
 })
   .on('mousemove', (event) => {
@@ -257,25 +276,3 @@ svg.on('mouseover', (event) => {
   // Hide the tooltip
     tooltip.style('opacity', 0);
   });
-
-/**
- * https://css-tricks.com/svg-path-syntax-illustrated-guide/
- * Create plot line with data points for an SVG with the following:
- *
- * Example: width 200 and height 160;
- *
- * width = total number of data points
- * height = range from lowest to highest point + some padding.
- *
- * Example data point:
- *
- * Starting at the bottom left of the graph:
- * "0 160" would indicate the following:
- * 0 = all the way to the left of the viewbox
- * 160 = all the way from the top (start at bottom left)
- *
- *  <svg width="190" height="160" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 0 160 C 40 10, 65 10, 95 80 S 150 150, 190 0" stroke="black" fill="transparent"/>
-    </svg>
- *
- */

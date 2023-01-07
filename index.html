@@ -7,7 +7,19 @@
     <title>Vite + TS</title>
   </head>
   <body>
-    <div id="pe-graph"></div>
+    <div class="graph-container">
+      <h3 class="graph-title">Price to Earnings Ratio for Asheville North Carolina</h3>
+      <div id="pe-graph">
+        <div class="tooltip">
+          <div class="tooltip__pe-ratio">
+              P / E Ratio: <span class="tooltip__pe-ratio-value"></span>
+          </div>
+          <div class="tooltip__date">
+              Date: <span id="tooltip__date-value"></span>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
