@@ -279,12 +279,3 @@ svg.on('mouseover', (event) => {
     </svg>
  *
  */
-
-const apple = {
-  name: 'Apple',
-  color: 'red',
-  sweetness: 80,
-  hasSeeds: true,
-};
-
-type AppleKeys = keyof typeof apple;
