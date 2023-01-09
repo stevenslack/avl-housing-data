@@ -1,7 +1,6 @@
 import './style.css';
 import * as d3 from 'd3';
 
-import { Line } from 'd3';
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from './data/bls-wages';
 
@@ -211,33 +210,18 @@ const lineGenerator = d3.line()
   .y((d: any) => yScale(d?.PEratio))
   .curve(d3.curveMonotoneX);
 
-const tooltip = svg.append('text')
-  .attr('x', 10)
-  .attr('y', 10)
-  .style('opacity', 0)
-  .text('');
-
 svg.append('path')
   .datum(dataSeries)
   .attr('d', lineGenerator as any)
   .attr('stroke', 'steelblue')
-  .attr('fill', 'none')
-  .on('mouseover', (event) => {
-    const x = xScale.invert(event.offsetX);
-    const y = yScale.invert(event.offsetY);
-    // Show the tooltip and update its content.
-    tooltip
-      .text(`Date: ${x.toLocaleDateString()} P/E Ratio: ${y.toFixed(1)}`);
-  })
-  .on('mousemove', (event) => {
-    // Update the position of the tooltip
-    tooltip.attr('x', event.offsetX + 10)
-      .attr('y', event.offsetY + 10);
-  })
-  .on('mouseout', () => {
-    // Hide the tooltip
-    tooltip.style('opacity', 0);
-  });
+  .attr('fill', 'none');
+
+// Create the vertical drop line.
+const xAxisLine = svg.append('g')
+  .append('rect')
+  .attr('class', 'dotted')
+  .attr('stroke-width', '1px')
+  .attr('width', '.5px');
 
 const xAxis = d3.axisBottom(xScale);
 
@@ -260,19 +244,77 @@ svg.append('g')
   .style('transform', 'rotate(-90deg)')
   .style('font-size', '16px');
 
-svg.on('mouseover', (event) => {
-  const x = xScale.invert(event.offsetX);
-  const y = yScale.invert(event.offsetY);
-  // Show the tooltip and update its content.
-  tooltip
-    .text(`Date: ${x.toLocaleDateString()} P/E Ratio: ${y.toFixed(1)}`);
-})
-  .on('mousemove', (event) => {
+const tooltip = d3.select('.tooltip');
+
+const tooltipCircle = svg
+  .append('circle')
+  .attr('class', 'tooltip__circle')
+  .attr('r', 4)
+  .attr('stroke', '#af9358')
+  .attr('fill', 'white')
+  .attr('stroke-width', 2)
+  .style('opacity', 0);
+
+svg.on('mousemove', (event) => {
+  // eslint-disable-next-line max-len
+  const calculateDataPoint = (d: PEdataPoint) => Math.abs(Number(d.dateRange?.[1]) - Number(xScale.invert(event.offsetX)));
   // Update the position of the tooltip
-    tooltip.attr('x', event.offsetX + 10)
-      .attr('y', event.offsetY + 10);
-  })
-  .on('mouseout', () => {
-  // Hide the tooltip
+  const index = d3.leastIndex(
+    dataSeries,
+    (a: PEdataPoint, b: PEdataPoint) => calculateDataPoint(a) - calculateDataPoint(b),
+  );
+
+  if (typeof index !== 'undefined') {
+    const dataPoint = dataSeries[index];
+
+    // Format the date for displaying the year value from the data point.
+    const formatDate = d3.timeFormat('%Y');
+    // Get the data point values to populate the tool tip.
+    const year = formatDate(dataPoint?.dateRange?.[1]);
+    const period = dataPoint?.period;
+    const PERatio = dataPoint?.PEratio;
+    const homeValue = dataPoint?.avgHomeValue;
+    const wages = dataPoint?.annualWage;
+
+    // Create our number formatter.
+    const currencyFormat = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
+
+    // Apply the values to update the tooltip.
+    tooltip.select('.tooltip__date-value').text(`${period} ${year}`);
+    tooltip.select('.tooltip__pe-ratio-value').text(PERatio);
+    tooltip.select('.tooltip__wage-value').text(currencyFormat.format(wages));
+    tooltip.select('.tooltip__home-price-value').text(currencyFormat.format(homeValue));
+
+    const x = xScale(dataPoint?.dateRange?.[1]);
+    const y = yScale(PERatio);
+
+    tooltip.style('opacity', 1);
+    tooltip.style(
+      'transform',
+      `translate(calc( -32% + ${x}px), calc(-80% + ${y}px))`,
+    );
+
+    tooltipCircle
+      .attr('cx', x)
+      .attr('cy', y)
+      .style('opacity', 1);
+
+    xAxisLine.attr('x', x)
+      .attr('y', y)
+      .attr('height', height - y)
+      .style('opacity', 1);
+  }
+
+  tooltip.attr('x', event.offsetX + 10)
+    .attr('y', event.offsetY + 10);
+})
+  .on('mouseleave', () => {
+    // Hide the tooltip and the tooltipCircle.
     tooltip.style('opacity', 0);
+    tooltipCircle.style('opacity', 0);
+    xAxisLine.style('opacity', 0);
   });
