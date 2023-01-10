@@ -63,6 +63,10 @@ h1 {
   opacity: 0;
 }
 
+.pe-graph__drop-line {
+  fill: #666;
+}
+
 /* Tooltip styles */
 .tooltip {
   background: #fff;

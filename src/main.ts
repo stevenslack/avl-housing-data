@@ -109,6 +109,23 @@ function getQuarter(month: number): string {
 }
 
 /**
+ * Get the PE Average.
+ *
+ * @param data - An array of PEdataPoint objects.
+ * @returns - The P / E average across the dataset.
+ */
+function getAveragePERatio(data: PEdataPoint[]): number {
+  const total: number = data?.length || 0;
+
+  const totalPEratio: number = data.reduce(
+    (acc: number, curr: PEdataPoint) => acc + Number(curr?.PEratio),
+    0,
+  );
+
+  return Number((totalPEratio / total).toFixed(1));
+}
+
+/**
  * The home value data series.
  *
  * The data stored in this variable has been manipulated to represent
@@ -186,6 +203,8 @@ for (const year in homeValueSeries) {
   }
 }
 
+const PEavg = getAveragePERatio(dataSeries);
+
 const width = 1000;
 const height = 600;
 
@@ -221,11 +240,12 @@ svg.append('path')
 
 // Average line.
 svg.append('line')
-  .style('stroke', 'black')
+  .style('stroke', '#666')
+  .attr('stroke-dasharray', '20 10')
   .attr('x1', 0)
   .attr('x2', `${width}`)
-  .attr('y1', yScale(6))
-  .attr('y2', yScale(6));
+  .attr('y1', yScale(PEavg))
+  .attr('y2', yScale(PEavg));
 
 /**
  * X Axis set up.
