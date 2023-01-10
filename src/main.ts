@@ -189,11 +189,14 @@ for (const year in homeValueSeries) {
 const width = 1000;
 const height = 600;
 
-const svg = d3.select('#pe-graph').append('svg')
+// Select the existing SVG element.
+const svg = d3.select('.pe-graph__svg')
   .attr('width', width)
-  .attr('height', height)
-  .lower(); // prepends the svg to the #pe-graph element.
+  .attr('height', height);
 
+/**
+ * Set up the scale and path (for the line) of the SVG.
+ */
 const xScale = d3.scaleTime()
   .domain(
     d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange?.[1]) as Date[],
@@ -216,27 +219,38 @@ svg.append('path')
   .attr('stroke', 'steelblue')
   .attr('fill', 'none');
 
-// Create the vertical drop line.
-const xAxisLine = svg.append('g')
-  .append('rect')
-  .attr('class', 'dotted')
-  .attr('stroke-width', '1px')
-  .attr('width', '.5px');
+// Average line.
+svg.append('line')
+  .style('stroke', 'black')
+  .attr('x1', 0)
+  .attr('x2', `${width}`)
+  .attr('y1', yScale(6))
+  .attr('y2', yScale(6));
 
+/**
+ * X Axis set up.
+ */
 const xAxis = d3.axisBottom(xScale);
-
 svg.append('g')
   // The transform puts the x axis at the bottom of the graph.
   .attr('transform', `translate(0, ${height})`)
-  .call(xAxis);
+  .call(xAxis)
+  .append('text')
+  .attr('class', 'pe-graph__x-axis-label')
+  .attr('fill', 'currentColor')
+  .attr('x', `${width / 2}`)
+  .attr('y', 50)
+  .text('Year')
+  .style('font-size', '16px');
 
+/**
+ * Y axis set up.
+ */
 const yAxis = d3.axisLeft(yScale);
-
-// Create the y-axis-label.
 svg.append('g')
   .call(yAxis)
   .append('text')
-  .attr('class', 'y-axis-label')
+  .attr('class', 'pe-graph__y-axis-label')
   .attr('fill', 'currentColor')
   .attr('x', `-${height / 2}`)
   .attr('y', -50)
@@ -245,15 +259,8 @@ svg.append('g')
   .style('font-size', '16px');
 
 const tooltip = d3.select('.tooltip');
-
-const tooltipCircle = svg
-  .append('circle')
-  .attr('class', 'tooltip__circle')
-  .attr('r', 4)
-  .attr('stroke', '#af9358')
-  .attr('fill', 'white')
-  .attr('stroke-width', 2)
-  .style('opacity', 0);
+const tooltipCircle = d3.select('.pe-graph__tooltip-circle');
+const xAxisLine = d3.select('.pe-graph__drop-line');
 
 svg.on('mousemove', (event) => {
   // eslint-disable-next-line max-len
@@ -265,16 +272,13 @@ svg.on('mousemove', (event) => {
   );
 
   if (typeof index !== 'undefined') {
-    const dataPoint = dataSeries[index];
+    const dataPoint: PEdataPoint = dataSeries[index];
 
     // Format the date for displaying the year value from the data point.
     const formatDate = d3.timeFormat('%Y');
     // Get the data point values to populate the tool tip.
     const year = formatDate(dataPoint?.dateRange?.[1]);
-    const period = dataPoint?.period;
     const PERatio = dataPoint?.PEratio;
-    const homeValue = dataPoint?.avgHomeValue;
-    const wages = dataPoint?.annualWage;
 
     // Create our number formatter.
     const currencyFormat = new Intl.NumberFormat('en-US', {
@@ -284,10 +288,10 @@ svg.on('mousemove', (event) => {
     });
 
     // Apply the values to update the tooltip.
-    tooltip.select('.tooltip__date-value').text(`${period} ${year}`);
+    tooltip.select('.tooltip__date-value').text(`${dataPoint?.period} ${year}`);
     tooltip.select('.tooltip__pe-ratio-value').text(PERatio);
-    tooltip.select('.tooltip__wage-value').text(currencyFormat.format(wages));
-    tooltip.select('.tooltip__home-price-value').text(currencyFormat.format(homeValue));
+    tooltip.select('.tooltip__wage-value').text(currencyFormat.format(dataPoint?.annualWage));
+    tooltip.select('.tooltip__home-price-value').text(currencyFormat.format(dataPoint?.avgHomeValue));
 
     const x = xScale(dataPoint?.dateRange?.[1]);
     const y = yScale(PERatio);
@@ -308,9 +312,6 @@ svg.on('mousemove', (event) => {
       .attr('height', height - y)
       .style('opacity', 1);
   }
-
-  tooltip.attr('x', event.offsetX + 10)
-    .attr('y', event.offsetY + 10);
 })
   .on('mouseleave', () => {
     // Hide the tooltip and the tooltipCircle.

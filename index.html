@@ -10,12 +10,16 @@
     <div class="graph-container">
       <h3 class="graph-title">Price to Earnings Ratio for Asheville North Carolina</h3>
       <div id="pe-graph">
+        <svg class="pe-graph__svg">
+          <g><rect class="pe-graph__drop-line" stroke-width="1px" width=".5px"></rect></g>
+          <circle class="pe-graph__tooltip-circle" r="4" stroke="#af9358" fill="white" stroke-width="2"></circle>
+        </svg>
         <div class="tooltip">
           <div class="tooltip__pe-ratio">
-              P / E Ratio: <span class="tooltip__pe-ratio-value"></span>
+            P / E Ratio: <span class="tooltip__pe-ratio-value"></span>
           </div>
           <div class="tooltip__date">
-              Date Range: <span class="tooltip__date-value"></span>
+            Date Range: <span class="tooltip__date-value"></span>
           </div>
           <div class="tooltip__wage">
             Median Wage: <span class="tooltip__wage-value"></span>

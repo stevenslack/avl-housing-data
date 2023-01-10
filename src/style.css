@@ -57,6 +57,13 @@ h1 {
   overflow: visible;
 }
 
+/* Vertical drop line */
+.pe-graph__drop-line,
+.pe-graph__tooltip-circle {
+  opacity: 0;
+}
+
+/* Tooltip styles */
 .tooltip {
   background: #fff;
   border: 1px solid #ddd;
