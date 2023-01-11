@@ -101,6 +101,18 @@ h1 {
   z-index: 10;
 }
 
+.tooltip dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  margin: 0;
+  text-align: left;
+}
+
+.tooltip dd {
+  font-weight: 700;
+  margin-left: 10px;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

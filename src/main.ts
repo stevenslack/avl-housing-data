@@ -13,18 +13,8 @@ import wagesData from './data/bls-wages';
 const monthlyHomePrices = Object.entries(Array.from(housingData)[0]);
 
 // Shape for period/quarters key values.
-enum Quarters {
-  Q1 = 'Q1',
-  Q2 = 'Q2',
-  Q3 = 'Q3',
-  Q4 = 'Q4',
-  Q5 = 'Q5',
-  Q01 = 'Q01',
-  Q02 = 'Q02',
-  Q03 = 'Q03',
-  Q04 = 'Q04',
-  Q05 = 'Q05',
-}
+type Quarters = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Q5' | 'Q01' | 'Q02' | 'Q03' | 'Q04' | 'Q05';
+type QuarterKeys = Extract<Quarters, 'Q1' | 'Q2' | 'Q3' | 'Q4'>;
 
 /**
  * Interface for each year / quarterly data points.
@@ -40,7 +30,7 @@ interface YearData {
  */
 interface BLSWageDataPoint {
   year: string | number;
-  period: Quarters | string,
+  period: Quarters,
   periodName: string,
   value: string | number,
   aspects: [],
@@ -59,13 +49,8 @@ interface PEdataPoint {
   PEratio: number,
 }
 
-// Store for the PEdataPoint series.
-const dataSeries: PEdataPoint[] = [];
-
-type QuarterName = 'Q1' | 'Q2' | 'Q3' | 'Q4';
-
 type QuarterMonths = {
-  [key in QuarterName]: [number, number, number];
+  [key in QuarterKeys]: [number, number, number];
 };
 
 const quarterMonths: QuarterMonths = {
@@ -82,7 +67,7 @@ const quarterMonths: QuarterMonths = {
  * @param quarter - The quarter to get the month range for.
  * @returns an array of 2 dates from beginning to end of a quarter.
  */
-function getDateRangePerQuarter(year: number, quarter: QuarterName): Date[] {
+function getDateRangePerQuarter(year: number, quarter: QuarterKeys): Date[] {
   let dateRange: Date[] = [new Date(), new Date()];
   // Set the date range as an array of beginning and end months for each quarter.
   dateRange = [
@@ -160,6 +145,9 @@ const seriesData: BLSWageDataPoint[] = wagesData
     period: x.period.replace('0', ''),
   }));
 
+// Store for the PEdataPoint series.
+const dataSeries: PEdataPoint[] = [];
+
 for (const year in homeValueSeries) {
   if (Object.prototype.hasOwnProperty.call(homeValueSeries, year)) {
     const yearValue = homeValueSeries[year];
@@ -180,7 +168,7 @@ for (const year in homeValueSeries) {
           if ((x.year === year) && (x.period === period)) {
             // Multiply the weekly wage by the number of weeks in a year.
             annualWage = Math.round(Number(x.value) * 52.1429);
-            dateRange = getDateRangePerQuarter(Number(year), period as QuarterName);
+            dateRange = getDateRangePerQuarter(Number(year), period as QuarterKeys);
           }
         });
 
@@ -204,7 +192,6 @@ for (const year in homeValueSeries) {
 }
 
 const PEavg = getAveragePERatio(dataSeries);
-
 const width = 1000;
 const height = 600;
 
@@ -308,10 +295,10 @@ svg.on('mousemove', (event) => {
     });
 
     // Apply the values to update the tooltip.
-    tooltip.select('.tooltip__date-value').text(`${dataPoint?.period} ${year}`);
-    tooltip.select('.tooltip__pe-ratio-value').text(PERatio);
-    tooltip.select('.tooltip__wage-value').text(currencyFormat.format(dataPoint?.annualWage));
-    tooltip.select('.tooltip__home-price-value').text(currencyFormat.format(dataPoint?.avgHomeValue));
+    tooltip.select('.tooltip__date').text(`${dataPoint?.period} ${year}`);
+    tooltip.select('.tooltip__pe-ratio').text(PERatio);
+    tooltip.select('.tooltip__wage').text(currencyFormat.format(dataPoint?.annualWage));
+    tooltip.select('.tooltip__home-price').text(currencyFormat.format(dataPoint?.avgHomeValue));
 
     const x = xScale(dataPoint?.dateRange?.[1]);
     const y = yScale(PERatio);
@@ -319,7 +306,7 @@ svg.on('mousemove', (event) => {
     tooltip.style('opacity', 1);
     tooltip.style(
       'transform',
-      `translate(calc( -32% + ${x}px), calc(-80% + ${y}px))`,
+      `translate(calc(-35% + ${x}px), calc(-80% + ${y}px))`,
     );
 
     tooltipCircle
@@ -332,10 +319,9 @@ svg.on('mousemove', (event) => {
       .attr('height', height - y)
       .style('opacity', 1);
   }
-})
-  .on('mouseleave', () => {
-    // Hide the tooltip and the tooltipCircle.
-    tooltip.style('opacity', 0);
-    tooltipCircle.style('opacity', 0);
-    xAxisLine.style('opacity', 0);
-  });
+}).on('mouseleave', () => {
+  // Hide the tooltip and the tooltipCircle.
+  tooltip.style('opacity', 0);
+  tooltipCircle.style('opacity', 0);
+  xAxisLine.style('opacity', 0);
+});
