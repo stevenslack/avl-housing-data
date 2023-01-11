@@ -11,13 +11,19 @@ import wagesData from './data/bls-wages';
 //   .then((result) => result?.Results)
 //   .then((series) => console.log(series['series'][0]['data']));
 
-const monthlyHomePrices = Object.entries(Array.from(housingData)[0]);
-
 // Shape for period/quarters key values.
 type Quarters = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Q5' | 'Q01' | 'Q02' | 'Q03' | 'Q04' | 'Q05';
 type QuarterKeys = Extract<Quarters, 'Q1' | 'Q2' | 'Q3' | 'Q4'> | string;
 
+// Common types.
 type ArrayOfThreeNumbers = [number, number, number];
+
+// Data format for the ZHVI data.
+type ZHVIdata = [
+  {
+    [date: string]: number;
+  },
+];
 
 /**
  * Interface for each year / quarterly data points.
@@ -56,9 +62,15 @@ type QuarterMonths = {
   [key in QuarterKeys]: ArrayOfThreeNumbers;
 };
 
+type HomeValueSeries = { [x: string]: QuarterMonths | { [x: string]: number[]; }; } | null;
+
 // eslint-disable-next-line max-len
 type LineGenerator = ValueFn<SVGPathElement, PEdataPoint[], string | number | boolean | readonly (string | number)[] | null>;
 
+/**
+ * An object representing each fiscal quarter with
+ * the corresponding month numbers in an array.
+ */
 const quarterMonths: QuarterMonths = {
   Q1: [1, 2, 3],
   Q2: [4, 5, 6],
@@ -117,42 +129,57 @@ function getAveragePERatio(data: PEdataPoint[]): number {
 }
 
 /**
- * The home value data series.
+ * Build the fiscal year home price series using Zillows ZHVI data.
  *
- * The data stored in this variable has been manipulated to represent
- * each year divided into quarters which have their monthly home values
- * in an array.
+ * The data built in this function represents each year
+ * divided into quarters which have their monthly home values in an array.
+ *
+ * @param data The ZHVI data.
+ * @returns    The home value series which is an object
+ *             with year keys and quarterly home price values.
  */
-const homeValueSeries = monthlyHomePrices.reduce((acc: YearData, curr: [string, number]) => {
-  const date = new Date(curr[0]);
+function buildFiscalYearHomePriceData(data: ZHVIdata | {}[]): HomeValueSeries | null {
+  let monthlyHomePrices: {}[] = [{}];
 
-  const year: string = JSON.stringify(date.getFullYear());
-  // Set the quarter ID by passing the month.
-  // Add 1 to ensure months are not on a zero-based numbering sequence.
-  const quarter: string = getQuarter(date.getMonth() + 1);
-
-  const [, currHomeValue] = curr;
-  // Set the initial
-  let quarterlyHomeValues: number[] = [currHomeValue];
-
-  if (acc[year] && acc[year][quarter]) {
-    const accHomeValues = acc[year][quarter];
-    accHomeValues.push(currHomeValue);
-    quarterlyHomeValues = accHomeValues;
+  // Ensure the data is in the correct shape.
+  if (Array.isArray(data) && data?.length >= 1) {
+    monthlyHomePrices = Object.entries(Array.from(data)[0]);
   }
 
-  return { ...acc, [year]: { ...acc[year], [quarter]: quarterlyHomeValues } };
-}, {});
+  if (Object.keys(monthlyHomePrices[0]).length === 0) {
+    return null;
+  }
 
-type HomeValueSeries = { [x: string]: QuarterMonths | { [x: string]: number[]; }; };
+  return monthlyHomePrices.reduce((acc: YearData, curr: [string, number] | {}) => {
+    const date = Array.isArray(curr) ? new Date(curr[0]) : new Date();
 
-// Assign the period data to match the housing data set (Q01 to equal Q1).
-const wageData: BLSWageDataPoint[] = wagesData
-  .map((x: BLSWageDataPoint) => ({
-    ...x,
-    period: x.period.replace('0', ''),
-  }));
+    const year: string = JSON.stringify(date.getFullYear());
+    // Set the quarter ID by passing the month.
+    // Add 1 to ensure months are not on a zero-based numbering sequence.
+    const quarter: string = getQuarter(date.getMonth() + 1);
 
+    const [, currHomeValue] = Array.isArray(curr) ? curr : [];
+
+    let quarterlyHomeValues: number[] = [currHomeValue];
+
+    if (acc[year] && acc[year][quarter]) {
+      const accHomeValues = acc[year][quarter];
+      accHomeValues.push(currHomeValue);
+      quarterlyHomeValues = accHomeValues;
+    }
+
+    return { ...acc, [year]: { ...acc[year], [quarter]: quarterlyHomeValues } };
+  }, {});
+}
+
+/**
+ * Build Price to Earnings Data Series.
+ *
+ * @param homeValues - Data for the time series of home values.
+ * @param wages - Data for the time series of wages.
+ * @returns - An array of data points with
+ *            P/E ratio, year, period, date range, avg home value, and annual wages.
+ */
 function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[]): PEdataPoint[] {
   // Store for the PEdataPoint series.
   const dataSeries: PEdataPoint[] = [];
@@ -204,8 +231,15 @@ function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[
   return dataSeries;
 }
 
-const dataSeries = buildPEDataSeries(homeValueSeries, wageData);
+// Assign the period data to match the housing data set (Q01 to equal Q1).
+const wageData: BLSWageDataPoint[] = wagesData
+  .map((x: BLSWageDataPoint) => ({
+    ...x,
+    period: x.period.replace('0', ''),
+  }));
 
+const homeValueSeries = buildFiscalYearHomePriceData(housingData);
+const dataSeries = buildPEDataSeries(homeValueSeries, wageData);
 const PEavg = getAveragePERatio(dataSeries);
 const width = 1000;
 const height = 600;
