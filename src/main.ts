@@ -1,6 +1,7 @@
 import './style.css';
 import * as d3 from 'd3';
 
+import { ValueFn } from 'd3';
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from './data/bls-wages';
 
@@ -14,7 +15,9 @@ const monthlyHomePrices = Object.entries(Array.from(housingData)[0]);
 
 // Shape for period/quarters key values.
 type Quarters = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Q5' | 'Q01' | 'Q02' | 'Q03' | 'Q04' | 'Q05';
-type QuarterKeys = Extract<Quarters, 'Q1' | 'Q2' | 'Q3' | 'Q4'>;
+type QuarterKeys = Extract<Quarters, 'Q1' | 'Q2' | 'Q3' | 'Q4'> | string;
+
+type ArrayOfThreeNumbers = [number, number, number];
 
 /**
  * Interface for each year / quarterly data points.
@@ -50,8 +53,11 @@ interface PEdataPoint {
 }
 
 type QuarterMonths = {
-  [key in QuarterKeys]: [number, number, number];
+  [key in QuarterKeys]: ArrayOfThreeNumbers;
 };
+
+// eslint-disable-next-line max-len
+type LineGenerator = ValueFn<SVGPathElement, PEdataPoint[], string | number | boolean | readonly (string | number)[] | null>;
 
 const quarterMonths: QuarterMonths = {
   Q1: [1, 2, 3],
@@ -138,58 +144,67 @@ const homeValueSeries = monthlyHomePrices.reduce((acc: YearData, curr: [string, 
   return { ...acc, [year]: { ...acc[year], [quarter]: quarterlyHomeValues } };
 }, {});
 
+type HomeValueSeries = { [x: string]: QuarterMonths | { [x: string]: number[]; }; };
+
 // Assign the period data to match the housing data set (Q01 to equal Q1).
-const seriesData: BLSWageDataPoint[] = wagesData
+const wageData: BLSWageDataPoint[] = wagesData
   .map((x: BLSWageDataPoint) => ({
     ...x,
     period: x.period.replace('0', ''),
   }));
 
-// Store for the PEdataPoint series.
-const dataSeries: PEdataPoint[] = [];
+function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[]): PEdataPoint[] {
+  // Store for the PEdataPoint series.
+  const dataSeries: PEdataPoint[] = [];
 
-for (const year in homeValueSeries) {
-  if (Object.prototype.hasOwnProperty.call(homeValueSeries, year)) {
-    const yearValue = homeValueSeries[year];
+  for (const year in homeValues) {
+    if (Object.prototype.hasOwnProperty.call(homeValues, year)) {
+      const yearValue = homeValues[year];
 
-    for (const period in yearValue) {
-      if (Object.prototype.hasOwnProperty.call(yearValue, period)) {
-        // For each period there is 3 months of median home prices.
-        // Below those 3 months are averaged into one value representing the period/quarter.
-        const sum: number = yearValue[period].reduce((acc, curr) => acc + curr, 0);
-        const avgHomeValue: number = Math.round(sum / yearValue[period].length);
+      for (const period in yearValue) {
+        if (Object.prototype.hasOwnProperty.call(yearValue, period)) {
+          const yearValuePeriod: ArrayOfThreeNumbers | number[] = yearValue[period];
+          // For each period there is 3 months of median home prices.
+          // Below, those 3 months are averaged into one value representing the period/quarter.
+          const sum: number = yearValuePeriod.reduce((acc, curr) => acc + curr, 0);
+          const avgHomeValue: number = Math.round(sum / yearValuePeriod.length);
 
-        let annualWage: string | number = 0;
-        let dateRange: Date[] = [new Date(), new Date()];
+          let annualWage: string | number = 0;
+          let dateRange: Date[] = [new Date(), new Date()];
 
-        seriesData.forEach((x) => {
+          wages.forEach((x) => {
           // Ensure there is a match for each year and period/quarter
           // before calculating the annual wage.
-          if ((x.year === year) && (x.period === period)) {
+            if ((x.year === year) && (x.period === period)) {
             // Multiply the weekly wage by the number of weeks in a year.
-            annualWage = Math.round(Number(x.value) * 52.1429);
-            dateRange = getDateRangePerQuarter(Number(year), period as QuarterKeys);
-          }
-        });
-
-        // Calculate the Price to Earnings ratio.
-        const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
-
-        // Only add a data point if there is a corresponding wage data value.
-        if (annualWage) {
-          dataSeries.push({
-            year,
-            period,
-            dateRange,
-            avgHomeValue,
-            annualWage,
-            PEratio,
+              annualWage = Math.round(Number(x.value) * 52.1429);
+              dateRange = getDateRangePerQuarter(Number(year), period as QuarterKeys);
+            }
           });
+
+          // Calculate the Price to Earnings ratio.
+          const PEratio: number = Number((avgHomeValue / annualWage).toFixed(1));
+
+          // Only add a data point if there is a corresponding wage data value.
+          if (annualWage) {
+            dataSeries.push({
+              year,
+              period,
+              dateRange,
+              avgHomeValue,
+              annualWage,
+              PEratio,
+            });
+          }
         }
       }
     }
   }
+
+  return dataSeries;
 }
+
+const dataSeries = buildPEDataSeries(homeValueSeries, wageData);
 
 const PEavg = getAveragePERatio(dataSeries);
 const width = 1000;
@@ -203,33 +218,42 @@ const svg = d3.select('.pe-graph__svg')
 /**
  * Set up the scale and path (for the line) of the SVG.
  */
-const xScale = d3.scaleTime()
+const xScale: d3.ScaleTime<number, number, never> = d3.scaleTime()
   .domain(
     d3.extent(dataSeries, (d: PEdataPoint) => d.dateRange?.[1]) as Date[],
   )
   .range([0, width]);
 
-const yScale = d3.scaleLinear()
+const yScale: d3.ScaleLinear<number, number, never> = d3.scaleLinear()
   // The domain gives us the y-axis range starting at 4.
   .domain([4, d3.max(dataSeries, (d: PEdataPoint) => d.PEratio) as number + 1])
   .range([height, 10]);
 
 const lineGenerator = d3.line()
-  .x((d: any) => xScale(d?.dateRange?.[1]))
-  .y((d: any) => yScale(d?.PEratio))
+  .x((d: PEdataPoint | [number, number]) => {
+    if ('dateRange' in d) {
+      return xScale(d.dateRange?.[1]);
+    }
+    // default behavior of returning first element of a two-element array of numbers.
+    return d[0];
+  })
+  .y((d: PEdataPoint | [number, number]) => {
+    if ('PEratio' in d) {
+      return yScale(d.PEratio);
+    }
+    // default behavior of returning first element of a two-element array of numbers.
+    return Array.isArray(d) ? d[0] : 0;
+  })
   .curve(d3.curveMonotoneX);
 
 svg.append('path')
   .datum(dataSeries)
-  .attr('d', lineGenerator as any)
+  .attr('d', lineGenerator as LineGenerator)
   .attr('stroke', 'steelblue')
   .attr('fill', 'none');
 
 // Average line.
-svg.append('line')
-  .style('stroke', '#666')
-  .attr('stroke-dasharray', '20 10')
-  .attr('x1', 0)
+d3.select('.pe-graph__avg-line')
   .attr('x2', `${width}`)
   .attr('y1', yScale(PEavg))
   .attr('y2', yScale(PEavg));

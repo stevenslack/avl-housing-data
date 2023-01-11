@@ -67,6 +67,10 @@ h1 {
   fill: #666;
 }
 
+.pe-graph__avg-line {
+  stroke: #666;
+}
+
 /* Tooltip styles */
 .tooltip {
   background: #fff;
