@@ -10,6 +10,12 @@ import {
 import housingData from '../data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from '../data/bls-wages';
 
+// TODO: fetch data and use stored data if endpoint limit is reached.
+// fetch('https://api.bls.gov/publicAPI/v2/timeseries/data/ENU3702140010/?startyear=2013&endyear=2023&calculations=true&annualaverage=true&aspects=true')
+//   .then((data) => data.json())
+//   .then((result) => result?.Results)
+//   .then((series) => console.log(series['series'][0]['data']));
+
 /**
  * Get the P/E Ratio data series.
  *
