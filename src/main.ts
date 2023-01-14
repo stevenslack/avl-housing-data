@@ -1,7 +1,21 @@
 import './style.css';
 import * as d3 from 'd3';
-
-import { ValueFn } from 'd3';
+import {
+  ArrayOfThreeNumbers,
+  QuarterKeys,
+  QuarterMonths,
+  YearData,
+} from './types/fiscalYearTypes';
+import {
+  BLSWageDataPoint,
+  HomeValueSeries,
+  PEdataPoint,
+  ZHVIdata,
+} from './types/dataSeriesTypes';
+import {
+  AxisGenerator,
+  LineGenerator,
+} from './types/lineChartTypes';
 import housingData from './data/avl-county-zhvi.json' assert { type: 'JSON' };
 import wagesData from './data/bls-wages';
 
@@ -10,62 +24,6 @@ import wagesData from './data/bls-wages';
 //   .then((data) => data.json())
 //   .then((result) => result?.Results)
 //   .then((series) => console.log(series['series'][0]['data']));
-
-// Shape for period/quarters key values.
-type Quarters = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'Q5' | 'Q01' | 'Q02' | 'Q03' | 'Q04' | 'Q05';
-type QuarterKeys = Extract<Quarters, 'Q1' | 'Q2' | 'Q3' | 'Q4'> | string;
-
-// Common types.
-type ArrayOfThreeNumbers = [number, number, number];
-
-// Data format for the ZHVI data.
-type ZHVIdata = [
-  {
-    [date: string]: number;
-  },
-];
-
-/**
- * Interface for each year / quarterly data points.
- */
-interface YearData {
-  [year: string]: {
-    [quarter: string]: number[];
-  };
-}
-
-/**
- * The BLS wage data point definition.
- */
-interface BLSWageDataPoint {
-  year: string | number;
-  period: Quarters,
-  periodName: string,
-  value: string | number,
-  aspects: [],
-  footnotes: [{}],
-}
-
-/**
- * Price/Earnings data point definition.
- */
-interface PEdataPoint {
-  year: string,
-  period: string,
-  avgHomeValue: number,
-  dateRange: Date[],
-  annualWage: number,
-  PEratio: number,
-}
-
-type QuarterMonths = {
-  [key in QuarterKeys]: ArrayOfThreeNumbers;
-};
-
-type HomeValueSeries = { [x: string]: QuarterMonths | { [x: string]: number[]; }; } | null;
-
-// eslint-disable-next-line max-len
-type LineGenerator = ValueFn<SVGPathElement, PEdataPoint[], string | number | boolean | readonly (string | number)[] | null>;
 
 /**
  * An object representing each fiscal quarter with
@@ -81,9 +39,9 @@ const quarterMonths: QuarterMonths = {
 /**
  * Get the date range for a quarter period in a year.
  *
- * @param year - The year in which the quarter resides.
+ * @param year    - The year in which the quarter resides.
  * @param quarter - The quarter to get the month range for.
- * @returns an array of 2 dates from beginning to end of a quarter.
+ * @returns       - An array of 2 dates from beginning to end of a quarter.
  */
 function getDateRangePerQuarter(year: number, quarter: QuarterKeys): Date[] {
   let dateRange: Date[] = [new Date(), new Date()];
@@ -100,7 +58,7 @@ function getDateRangePerQuarter(year: number, quarter: QuarterKeys): Date[] {
  * Get the yearly quarter key.
  *
  * @param month - The month as a number 1 - 12.
- * @returns The quarter key. Possible values are Q1, Q2, Q3, Q4 or an empty string.
+ * @returns     - The quarter key. Possible values are Q1, Q2, Q3, Q4 or an empty string.
  */
 function getQuarter(month: number): string {
   for (const [key, value] of Object.entries(quarterMonths)) {
@@ -115,7 +73,7 @@ function getQuarter(month: number): string {
  * Get the PE Average.
  *
  * @param data - An array of PEdataPoint objects.
- * @returns - The P / E average across the dataset.
+ * @returns    - The P / E average across the dataset.
  */
 function getAveragePERatio(data: PEdataPoint[]): number {
   const total: number = data?.length || 0;
@@ -134,9 +92,9 @@ function getAveragePERatio(data: PEdataPoint[]): number {
  * The data built in this function represents each year
  * divided into quarters which have their monthly home values in an array.
  *
- * @param data The ZHVI data.
- * @returns    The home value series which is an object
- *             with year keys and quarterly home price values.
+ * @param data - The ZHVI data.
+ * @returns    - The home value series which is an object
+ *               with year keys and quarterly home price values.
  */
 function buildFiscalYearHomePriceData(data: ZHVIdata | {}[]): HomeValueSeries | null {
   let monthlyHomePrices: {}[] = [{}];
@@ -176,9 +134,9 @@ function buildFiscalYearHomePriceData(data: ZHVIdata | {}[]): HomeValueSeries | 
  * Build Price to Earnings Data Series.
  *
  * @param homeValues - Data for the time series of home values.
- * @param wages - Data for the time series of wages.
- * @returns - An array of data points with
- *            P/E ratio, year, period, date range, avg home value, and annual wages.
+ * @param wages      - Data for the time series of wages.
+ * @returns          - An array of data points with
+ *                     P/E ratio, year, period, date range, avg home value, and annual wages.
  */
 function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[]): PEdataPoint[] {
   // Store for the PEdataPoint series.
@@ -200,10 +158,10 @@ function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[
           let dateRange: Date[] = [new Date(), new Date()];
 
           wages.forEach((x) => {
-          // Ensure there is a match for each year and period/quarter
-          // before calculating the annual wage.
+            // Ensure there is a match for each year and period/quarter
+            // before calculating the annual wage.
             if ((x.year === year) && (x.period === period)) {
-            // Multiply the weekly wage by the number of weeks in a year.
+              // Multiply the weekly wage by the number of weeks in a year.
               annualWage = Math.round(Number(x.value) * 52.1429);
               dateRange = getDateRangePerQuarter(Number(year), period as QuarterKeys);
             }
@@ -231,6 +189,24 @@ function buildPEDataSeries(homeValues: HomeValueSeries, wages: BLSWageDataPoint[
   return dataSeries;
 }
 
+function getPEDataSeries(housingData) {
+  // Assign the period data to match the housing data set (Q01 to equal Q1).
+  const wageData: BLSWageDataPoint[] = wagesData
+    .map((x: BLSWageDataPoint) => ({
+      ...x,
+      period: x.period.replace('0', ''),
+    }));
+
+  const homeValueSeries = buildFiscalYearHomePriceData(housingData);
+  const dataSeries = buildPEDataSeries(homeValueSeries, wageData);
+  const PEavg = getAveragePERatio(dataSeries);
+
+  return {
+    PEavg,
+    dataSeries,
+  };
+}
+
 // Assign the period data to match the housing data set (Q01 to equal Q1).
 const wageData: BLSWageDataPoint[] = wagesData
   .map((x: BLSWageDataPoint) => ({
@@ -241,13 +217,15 @@ const wageData: BLSWageDataPoint[] = wagesData
 const homeValueSeries = buildFiscalYearHomePriceData(housingData);
 const dataSeries = buildPEDataSeries(homeValueSeries, wageData);
 const PEavg = getAveragePERatio(dataSeries);
+
 const width = 1000;
 const height = 600;
 
 // Select the existing SVG element.
 const svg = d3.select('.pe-graph__svg')
   .attr('width', width)
-  .attr('height', height);
+  .attr('height', height)
+  .attr('viewBox', `0 0 ${width} ${height}`);
 
 /**
  * Set up the scale and path (for the line) of the SVG.
@@ -294,34 +272,33 @@ d3.select('.pe-graph__avg-line')
 
 /**
  * X Axis set up.
+ *
+ * Constructs a new bottom-oriented axis generator for the given scale.
+ * @see https://github.com/d3/d3-axis#axisBottom
  */
-const xAxis = d3.axisBottom(xScale);
-svg.append('g')
+const xAxis: AxisGenerator = d3.axisBottom(xScale);
+
+svg.select('.pe-graph__x-axis')
   // The transform puts the x axis at the bottom of the graph.
   .attr('transform', `translate(0, ${height})`)
-  .call(xAxis)
-  .append('text')
-  .attr('class', 'pe-graph__x-axis-label')
-  .attr('fill', 'currentColor')
+  .call(xAxis);
+
+// Add the X Axis label.
+svg.select('.pe-graph__x-axis-label')
   .attr('x', `${width / 2}`)
-  .attr('y', 50)
-  .text('Year')
-  .style('font-size', '16px');
+  .attr('y', 50);
 
 /**
  * Y axis set up.
  */
-const yAxis = d3.axisLeft(yScale);
-svg.append('g')
-  .call(yAxis)
-  .append('text')
-  .attr('class', 'pe-graph__y-axis-label')
-  .attr('fill', 'currentColor')
+const yAxis: AxisGenerator = d3.axisLeft(yScale);
+
+svg.select('.pe-graph__y-axis')
+  .call(yAxis);
+
+svg.select('.pe-graph__y-axis-label')
   .attr('x', `-${height / 2}`)
-  .attr('y', -50)
-  .text('P/E Ratio')
-  .style('transform', 'rotate(-90deg)')
-  .style('font-size', '16px');
+  .attr('y', -50);
 
 const tooltip = d3.select('.tooltip');
 const tooltipCircle = d3.select('.pe-graph__tooltip-circle');
@@ -364,7 +341,7 @@ svg.on('mousemove', (event) => {
     tooltip.style('opacity', 1);
     tooltip.style(
       'transform',
-      `translate(calc(-35% + ${x}px), calc(-80% + ${y}px))`,
+      `translate(calc(-7% + ${x}px), calc(-80% + ${y}px))`,
     );
 
     tooltipCircle
