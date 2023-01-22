@@ -72,6 +72,12 @@ h1 {
   stroke: #666;
 }
 
+.pe-graph__tooltip {
+  width: 220px;
+  height: 110px;
+  opacity: 0;
+}
+
 /* Tooltip styles */
 .tooltip {
   background: #fff;
@@ -80,12 +86,10 @@ h1 {
   font-size: 0.9em;
   left: 0;
   line-height: 1.4em;
-  opacity: 0;
   padding: 0.6em 1em;
   pointer-events: none;
   position: absolute;
   text-align: center;
-  top: -14px;
   transition: all 0.1s ease-out;
   z-index: 10;
 }

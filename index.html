@@ -21,19 +21,22 @@
             <path class="domain" stroke="currentColor"></path>
             <text class="pe-graph__x-axis-label" fill="currentColor" style="font-size: 16px;">Year</text>
           </g>
+          <path class="pe-graph__pe-ratio-line" fill="none" stroke="steelblue"></path>
+          <foreignObject class="pe-graph__tooltip">
+            <div class="tooltip">
+              <dl>
+                <dt>P / E Ratio:</dt>
+                <dd class="tooltip__pe-ratio"></dd>
+                <dt>Date Range:</dt>
+                <dd class="tooltip__date"></dd>
+                <dt>Median Wage:</dt>
+                <dd class="tooltip__wage"></dd>
+                <dt>Home Price:</dt>
+                <dd class="tooltip__home-price"></dd>
+              </dl>
+            </div>
+          </foreignObject>
         </svg>
-        <div class="tooltip">
-          <dl>
-            <dt>P / E Ratio:</dt>
-            <dd class="tooltip__pe-ratio"></dd>
-            <dt>Date Range:</dt>
-            <dd class="tooltip__date"></dd>
-            <dt>Median Wage:</dt>
-            <dd class="tooltip__wage"></dd>
-            <dt>Home Price:</dt>
-            <dd class="tooltip__home-price"></dd>
-          </dl>
-        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
