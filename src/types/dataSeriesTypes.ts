@@ -19,10 +19,10 @@ export type ZHVIdata = [
 export interface BLSWageDataPoint {
   year: string | number;
   period: Quarters,
-  periodName: string,
+  periodName?: string,
   value: string | number,
-  aspects: [],
-  footnotes: [{}],
+  aspects?: [],
+  footnotes?: [{}],
 }
 
 /**
