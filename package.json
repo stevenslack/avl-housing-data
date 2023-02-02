@@ -10,7 +10,7 @@
     "lint:fix": "eslint --ext .js --ext .ts --ext",
     "preview": "vite preview",
     "stylelint": "stylelint \"**/*.scss\" --allow-empty-input",
-    "test": "jest src",
+    "test": "jest src --silent",
     "test:watch": "jest src --watch"
   },
   "devDependencies": {
