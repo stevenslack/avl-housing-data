@@ -39,7 +39,6 @@ h1 {
 
 .graph-container {
   margin: 0 auto;
-  width: 90%;
 }
 
 .graph-title {
@@ -47,7 +46,7 @@ h1 {
 }
 
 #pe-graph {
-  margin: 0 auto;
+  margin: 0 auto 20px;
   max-width: 1280px;
   padding: 2rem;
   position: relative;
@@ -110,14 +109,25 @@ h1 {
   z-index: 10;
 }
 
-.tooltip dl {
+.data-display--box {
+  margin: 50px auto 0;
+  max-width: 300px;
+}
+
+.data-display--box-table {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.data-display dl {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   margin: 0;
   text-align: left;
 }
 
-.tooltip dd {
+.data-display dd {
   font-weight: 700;
   margin-left: 10px;
 }

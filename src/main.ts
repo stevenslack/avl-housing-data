@@ -66,7 +66,7 @@ function renderChart(width: number, height: number) {
    * @param range — Array of range values.
    */
   const yScale: d3.ScaleLinear<number, number, never> = d3.scaleLinear()
-  // The domain gives us the y-axis range starting at 4.
+    // The domain gives us the y-axis range starting at 4.
     .domain([4, d3.max(dataSeries, (d: PEdataPoint) => d.PEratio) as number + 1])
     .range([height, 10]);
 
@@ -118,7 +118,7 @@ function renderChart(width: number, height: number) {
    * which displays the ticks as year values.
    */
   svg.select('.pe-graph__x-axis')
-  // The transform puts the x axis at the bottom of the graph.
+    // The transform puts the x axis at the bottom of the graph.
     .attr('transform', `translate(0, ${height})`)
     .call(xAxis);
 
@@ -143,10 +143,45 @@ function renderChart(width: number, height: number) {
     .attr('x', `-${height / 2}`)
     .attr('y', -50);
 
-  const tooltip = d3.select('.pe-graph__tooltip');
+  const tooltip = d3.selectAll('.pe-graph__tooltip');
   const tooltipCircle = d3.select('.pe-graph__tooltip-circle');
   const xAxisLine = d3.select('.pe-graph__drop-line');
 
+  /**
+   * Populate the PE data Point display.
+   *
+   * @param dataPoint - The PEdataPoint to populate the data display with.
+   */
+  function populateDataDisplay(dataPoint: PEdataPoint) {
+    // Format the date for displaying the year value from the data point.
+    const formatDate = d3.timeFormat('%Y');
+    // Get the data point values to populate the tool tip.
+    const year = formatDate(dataPoint?.dateRange?.[1]);
+
+    // Create our number formatter.
+    const currencyFormat = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
+
+    // Apply the values to update the tooltip.
+    d3.selectAll('.data-display__date').text(`${dataPoint?.period} ${year}`);
+    d3.selectAll('.data-display__pe-ratio').text(dataPoint?.PEratio);
+    d3.selectAll('.data-display__wage').text(currencyFormat.format(dataPoint?.annualWage));
+    d3.selectAll('.data-display__home-price').text(currencyFormat.format(dataPoint?.avgHomeValue));
+  }
+
+  // Get the last data point in the data series.
+  const lastIndex: number = Object.keys(dataSeries).length - 1;
+  const lastDataPoint: PEdataPoint = dataSeries[lastIndex];
+
+  // Set the initial data display with the last data point.
+  populateDataDisplay(lastDataPoint);
+
+  /**
+   * On the SVG mousemove calculate the position and show the data display as a tooltip.
+   */
   svg.on('mousemove', (event) => {
     // eslint-disable-next-line max-len
     const calculateDataPoint = (d: PEdataPoint) => Math.abs(Number(d.dateRange?.[1]) - Number(xScale.invert(event.offsetX)));
@@ -159,27 +194,11 @@ function renderChart(width: number, height: number) {
     if (typeof index !== 'undefined') {
       const dataPoint: PEdataPoint = dataSeries[index];
 
-      // Format the date for displaying the year value from the data point.
-      const formatDate = d3.timeFormat('%Y');
-      // Get the data point values to populate the tool tip.
-      const year = formatDate(dataPoint?.dateRange?.[1]);
-      const PERatio = dataPoint?.PEratio;
-
-      // Create our number formatter.
-      const currencyFormat = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 0,
-      });
-
-      // Apply the values to update the tooltip.
-      tooltip.select('.tooltip__date').text(`${dataPoint?.period} ${year}`);
-      tooltip.select('.tooltip__pe-ratio').text(PERatio);
-      tooltip.select('.tooltip__wage').text(currencyFormat.format(dataPoint?.annualWage));
-      tooltip.select('.tooltip__home-price').text(currencyFormat.format(dataPoint?.avgHomeValue));
+      // Tooltip data display.
+      populateDataDisplay(dataPoint);
 
       const x = xScale(dataPoint?.dateRange?.[1]);
-      const y = yScale(PERatio);
+      const y = yScale(dataPoint?.PEratio);
 
       tooltip
         .attr('x', x)
