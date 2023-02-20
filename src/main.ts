@@ -114,6 +114,14 @@ function renderChart(width: number, height: number) {
     .attr('y2', yScale(PEavg));
 
   /**
+   * Apply a label to the average P / E ratio.
+   */
+  d3.select('.pe-graph__avg-line-label')
+    .attr('y', yScale(PEavg) + 25)
+    .attr('x', width - 90)
+    .text(`Average: ${PEavg}`);
+
+  /**
    * Create the X Axis for the bottom of the graph
    * which displays the ticks as year values.
    */
