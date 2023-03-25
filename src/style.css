@@ -79,6 +79,7 @@ h1 {
 
 /* Tooltip styles */
 .tooltip {
+  display: none;
   background: #fff;
   border: 1px solid #ddd;
   color: #333;
@@ -169,6 +170,12 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media screen and (min-width: 900px) {
+  .tooltip {
+    display: block;
+  }
 }
 
 @media (prefers-color-scheme: light) {
